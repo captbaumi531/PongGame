@@ -1,0 +1,1401 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pong Game</title>
+    <style>
+      :root {
+        --bg: #070a0f;
+        --panel: #0a121a;
+        --board-top: #081a24;
+        --board-mid: #0d2436;
+        --board-bottom: #1a2036;
+        --cyan: #39d7ff;
+        --cyan-2: #7ad3ff;
+        --wind: #e9f1ff;
+        --wind-2: #d3c9ff;
+        --muted: #95b6d3;
+        --line: rgba(220, 232, 255, 0.45);
+        --chip: rgba(18, 28, 38, 0.8);
+        --chip-border: rgba(159, 203, 255, 0.38);
+        --text: #ebf1ff;
+        --shadow: rgba(57, 215, 255, 0.35);
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Segoe UI", Tahoma, sans-serif;
+      }
+
+      body {
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 32px 20px 40px;
+      }
+
+      .page-shell {
+        width: min(1160px, calc(100vw - 40px));
+      }
+
+      .masthead {
+        text-align: center;
+        margin-bottom: 16px;
+      }
+
+      h1 {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(2.3rem, 4vw, 5.1rem);
+        line-height: 0.98;
+        letter-spacing: -0.06em;
+        font-weight: 700;
+        color: #f3f7ff;
+        text-shadow: 0 0 18px rgba(255,255,255,0.08);
+      }
+
+      .subtitle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(0.38rem, 1.2vw, 0.75rem);
+        flex-wrap: wrap;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(1.8rem, 2.8vw, 4.4rem);
+        line-height: 1;
+        letter-spacing: -0.06em;
+        font-weight: 700;
+        color: #edf4ff;
+        margin-top: -0.15em;
+      }
+
+      .subtitle .matchup-side {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.22em;
+        white-space: nowrap;
+        position: relative;
+      }
+
+      .subtitle .matchup-side > span:last-child {
+        position: relative;
+        display: inline-block;
+        z-index: 1;
+        background-image: linear-gradient(180deg, #f7fdff 0%, #dcefff 18%, #9feaff 46%, #5fd5ff 100%);
+        background-size: 160% 100%;
+        background-position: 0% 50%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        text-shadow: 0 0 18px rgba(130, 234, 255, 0.2);
+      }
+
+      .subtitle .matchup-side:first-child > span:last-child {
+        background-image: linear-gradient(180deg, #ffffff 0%, #d8fbff 18%, #9feaff 42%, #58d7ff 100%);
+        animation: lightningWordPulse 3.2s ease-in-out infinite;
+      }
+
+      .subtitle .matchup-side:last-child > span:last-child {
+        background-image: linear-gradient(180deg, #ffffff 0%, #edf7ff 18%, #d7e7ff 48%, #c4d8ff 100%);
+        animation: windWordShimmer 4.6s ease-in-out infinite;
+      }
+
+      .matchup-icon {
+        display: inline-block;
+        flex: 0 0 auto;
+        width: 0.72em;
+        height: 0.86em;
+        vertical-align: -0.04em;
+        position: relative;
+        isolation: isolate;
+      }
+
+      .lightning-icon {
+        color: var(--cyan);
+        font-size: 0.9em;
+        text-shadow: 0 0 12px rgba(57, 215, 255, 0.8), 0 0 26px rgba(57, 215, 255, 0.45);
+        background: linear-gradient(180deg, #f3feff 0%, #a7f2ff 35%, #79d8ff 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        -webkit-text-fill-color: transparent;
+        animation: lightningFlicker 3s ease-in-out infinite;
+      }
+
+      .lightning-icon::before {
+        content: "";
+        position: absolute;
+        inset: -0.24em -0.18em;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(152, 242, 255, 0.9) 0%, rgba(87, 214, 255, 0.46) 38%, rgba(87, 214, 255, 0) 72%);
+        filter: blur(0.14em);
+        opacity: 0.9;
+        z-index: -1;
+        animation: lightningGlow 2.7s ease-in-out infinite;
+      }
+
+      .lightning-icon::after {
+        content: "";
+        position: absolute;
+        width: 0.58em;
+        height: 0.58em;
+        right: -0.1em;
+        top: -0.16em;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(168, 246, 255, 0.3));
+        clip-path: polygon(48% 0%, 100% 0%, 62% 42%, 100% 42%, 30% 100%, 46% 60%, 0% 60%);
+        opacity: 0.8;
+        filter: drop-shadow(0 0 8px rgba(118, 233, 255, 0.9));
+        animation: lightningSpark 2.8s ease-in-out infinite;
+      }
+
+      .wind-icon {
+        color: #dceaff;
+        font-size: 0.78em;
+        letter-spacing: -0.22em;
+        text-shadow: 0 0 12px rgba(206, 225, 255, 0.8), 0 0 18px rgba(166, 190, 255, 0.4);
+        transform: rotate(-12deg);
+        background: linear-gradient(90deg, #f6fbff 0%, #edf4ff 22%, #dff1ff 48%, #c7d9ff 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        -webkit-text-fill-color: transparent;
+        position: relative;
+        animation: windDrift 3.1s ease-in-out infinite alternate;
+      }
+
+      .wind-icon::before {
+        content: "";
+        position: absolute;
+        inset: 12% 4% 24% 8%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.9) 16%, rgba(209, 229, 255, 0.8) 42%, rgba(255, 255, 255, 0) 100%);
+        transform: skewX(-18deg) translateX(-110%);
+        opacity: 0.9;
+        filter: blur(0.1em);
+        animation: windSweep 3.2s ease-in-out infinite;
+      }
+
+      .wind-icon::after {
+        content: "";
+        position: absolute;
+        inset: 18% 12% 30% 24%;
+        background: linear-gradient(90deg, transparent 0%, rgba(190, 219, 255, 0.7) 25%, rgba(255, 255, 255, 0.15) 68%, transparent 100%);
+        border-radius: 999px;
+        opacity: 0.75;
+        filter: blur(0.18em);
+        transform: translateX(-20%);
+        animation: windSheen 2.8s ease-in-out infinite;
+      }
+
+      @keyframes lightningGlow {
+        0%, 100% { opacity: 0.38; transform: scale(0.96); }
+        30% { opacity: 0.82; transform: scale(1.08); }
+        42% { opacity: 1; transform: scale(1.12); }
+        58% { opacity: 0.6; transform: scale(1.04); }
+      }
+
+      @keyframes lightningFlicker {
+        0%, 100% { filter: brightness(1) saturate(1); text-shadow: 0 0 10px rgba(57, 215, 255, 0.5), 0 0 18px rgba(57, 215, 255, 0.25); }
+        18% { filter: brightness(1.3) saturate(1.2); text-shadow: 0 0 16px rgba(105, 236, 255, 0.9), 0 0 26px rgba(57, 215, 255, 0.7); }
+        22% { filter: brightness(1.05) saturate(1.1); text-shadow: 0 0 8px rgba(57, 215, 255, 0.6), 0 0 18px rgba(57, 215, 255, 0.45); }
+        52% { filter: brightness(1.4) saturate(1.3); text-shadow: 0 0 18px rgba(119, 238, 255, 1), 0 0 30px rgba(57, 215, 255, 0.9); }
+        60% { filter: brightness(1.15) saturate(1.1); }
+      }
+
+      @keyframes lightningSpark {
+        0%, 100% { opacity: 0.2; transform: translate(0, 0) scale(0.9); }
+        20% { opacity: 1; transform: translate(-0.08em, 0.04em) scale(1.05); }
+        32% { opacity: 0.7; transform: translate(0.06em, -0.08em) scale(0.92); }
+        60% { opacity: 1; transform: translate(-0.12em, 0.1em) scale(1.18); }
+      }
+
+      @keyframes lightningWordPulse {
+        0%, 100% {
+          background-position: 0% 50%;
+          filter: brightness(0.96) saturate(1);
+          text-shadow: 0 0 10px rgba(57, 215, 255, 0.22), 0 0 18px rgba(69, 211, 255, 0.12);
+        }
+        18% {
+          background-position: 35% 50%;
+          filter: brightness(1.12) saturate(1.18);
+          text-shadow: 0 0 14px rgba(112, 234, 255, 0.42), 0 0 24px rgba(57, 215, 255, 0.26);
+        }
+        34% {
+          background-position: 56% 50%;
+          filter: brightness(1.28) saturate(1.2);
+          text-shadow: 0 0 18px rgba(135, 245, 255, 0.6), 0 0 28px rgba(57, 215, 255, 0.4);
+        }
+        50% {
+          background-position: 85% 50%;
+          filter: brightness(1.1) saturate(1.1);
+          text-shadow: 0 0 12px rgba(100, 233, 255, 0.35), 0 0 16px rgba(57, 215, 255, 0.2);
+        }
+      }
+
+      @keyframes windWordShimmer {
+        0%, 100% {
+          background-position: 0% 50%;
+          filter: brightness(1) saturate(1);
+          text-shadow: 0 0 10px rgba(209, 224, 255, 0.14), 0 0 18px rgba(195, 214, 255, 0.1);
+        }
+        25% {
+          background-position: 30% 50%;
+          filter: brightness(1.08) saturate(1.12);
+          text-shadow: 0 0 12px rgba(231, 241, 255, 0.24), 0 0 18px rgba(203, 222, 255, 0.15);
+        }
+        50% {
+          background-position: 78% 50%;
+          filter: brightness(1.14) saturate(1.18);
+          text-shadow: 0 0 16px rgba(236, 246, 255, 0.28), 0 0 22px rgba(185, 205, 255, 0.18);
+        }
+        75% {
+          background-position: 100% 50%;
+          filter: brightness(1.06) saturate(1.08);
+          text-shadow: 0 0 12px rgba(224, 236, 255, 0.18), 0 0 18px rgba(193, 214, 255, 0.12);
+        }
+      }
+
+      @keyframes windSweep {
+        0%, 100% { transform: skewX(-18deg) translateX(-110%); opacity: 0.15; }
+        20% { opacity: 0.85; }
+        50% { transform: skewX(-18deg) translateX(20%); opacity: 1; }
+        80% { opacity: 0.7; }
+      }
+
+      @keyframes windSheen {
+        0%, 100% { opacity: 0.2; transform: translateX(-28%) scaleX(0.88); }
+        40% { opacity: 0.8; transform: translateX(14%) scaleX(1.12); }
+        70% { opacity: 0.5; transform: translateX(20%) scaleX(1.05); }
+      }
+
+      @keyframes windDrift {
+        0% { filter: brightness(1) saturate(1); }
+        100% { filter: brightness(1.12) saturate(1.2); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .lightning-icon,
+        .lightning-icon::before,
+        .lightning-icon::after,
+        .wind-icon,
+        .wind-icon::before,
+        .wind-icon::after,
+        .subtitle .matchup-side:first-child > span:last-child,
+        .subtitle .matchup-side:last-child > span:last-child,
+        .subtitle .matchup-side > span:last-child {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+
+
+      .arena-shell {
+        position: relative;
+        border-radius: 18px 18px 12px 12px;
+        background: linear-gradient(90deg, rgba(0, 0, 0, 0.16), rgba(174, 206, 255, 0.06));
+        box-shadow: 0 0 0 1px rgba(126, 162, 201, 0.2), 0 20px 42px rgba(0,0,0,0.22);
+        padding: 0 0 10px;
+      }
+
+      .score-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+        align-items: center;
+        gap: 14px;
+        margin: 0 0 12px;
+        padding: 0 14px;
+      }
+
+      .score-side {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 52px;
+      }
+
+      .score-side.right {
+        justify-content: flex-end;
+      }
+
+      .score-label {
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.22rem;
+        text-transform: uppercase;
+        color: rgba(206, 230, 255, 0.8);
+        opacity: 0.9;
+        white-space: nowrap;
+      }
+
+      .score-box {
+        min-width: 72px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        border: 1px solid rgba(122, 211, 255, 0.22);
+        background: rgba(13, 22, 32, 0.72);
+        box-shadow: inset 0 0 18px rgba(57, 215, 255, 0.12);
+        color: var(--wind);
+        font-weight: 800;
+        font-size: clamp(2rem, 2.8vw, 3.1rem);
+        line-height: 1;
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        text-shadow: 0 0 18px rgba(255,255,255,0.2);
+      }
+
+      .score-box.lightning {
+        color: var(--cyan);
+        box-shadow: inset 0 0 18px rgba(57, 215, 255, 0.15), 0 0 18px rgba(57, 215, 255, 0.1);
+      }
+
+      .score-box.wind {
+        color: var(--wind);
+      }
+
+      .center-badge {
+        display: grid;
+        grid-template-rows: auto auto;
+        justify-items: center;
+        align-content: center;
+        justify-content: center;
+        gap: 2px;
+        width: 100%;
+        min-width: 0;
+        text-align: center;
+        color: var(--text);
+      }
+
+      .center-badge .vs {
+        justify-self: center;
+        line-height: 1.1;
+        font-size: clamp(1rem, 1.8vw, 1.6rem);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        font-weight: 800;
+      }
+
+      .center-badge .tag {
+        width: 100%;
+        max-width: 100%;
+        font-size: 0.54rem;
+        line-height: 1.25;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        opacity: 0.8;
+        overflow-wrap: anywhere;
+      }
+
+      .arena-board {
+        position: relative;
+        width: 100%;
+        height: clamp(320px, 46vw, 520px);
+        border-radius: 18px 18px 8px 8px;
+        background: linear-gradient(90deg, rgba(19, 106, 134, 0.8), rgba(8, 17, 23, 0.86) 40%, rgba(10, 16, 25, 0.9) 58%, rgba(30, 36, 52, 0.7));
+        border: 1px solid rgba(128, 177, 214, 0.25);
+        box-shadow: inset 0 0 36px rgba(68, 238, 255, 0.12), 0 0 32px rgba(45, 88, 113, 0.25);
+        overflow: hidden;
+        margin: 0 12px;
+        touch-action: none;
+      }
+
+      .arena-board::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 14% 46%, rgba(57, 215, 255, 0.38), transparent 24%),
+          radial-gradient(circle at 82% 48%, rgba(188, 192, 255, 0.16), transparent 28%),
+          linear-gradient(90deg, rgba(24, 108, 130, 0.26), rgba(16, 25, 39, 0.06) 33%, rgba(16, 21, 31, 0.18) 66%, rgba(200, 208, 255, 0.14));
+        pointer-events: none;
+      }
+
+      canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        background: transparent;
+      }
+
+      .board-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 16px 12px 0;
+        pointer-events: none;
+      }
+
+      .board-overlay.hidden {
+        opacity: 0;
+      }
+
+      .serve-text {
+        border-radius: 18px;
+        padding: 0.7rem 1.2rem;
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        letter-spacing: 0.18rem;
+        text-transform: uppercase;
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: rgba(234, 244, 255, 0.95);
+        border: 1px solid rgba(176, 204, 220, 0.2);
+        background: rgba(7, 10, 15, 0.12);
+        backdrop-filter: blur(2px);
+      }
+
+      .controls-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 20px;
+        padding: 10px 20px 8px;
+      }
+
+      .control-chip {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--chip-border);
+        background: rgba(11, 21, 28, 0.7);
+        color: rgba(236, 243, 255, 0.9);
+        border-radius: 16px;
+        padding: 0.58rem 1rem;
+        min-width: min(45vw, 350px);
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        font-size: 0.62rem;
+        font-weight: 800;
+        letter-spacing: 0.22rem;
+        text-transform: uppercase;
+        box-shadow: inset 0 0 16px rgba(104, 160, 202, 0.08), 0 0 14px rgba(59, 115, 170, 0.08);
+      }
+
+      .control-chip kbd {
+        font: inherit;
+      }
+
+      .action-row {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        padding: 4px 0 10px;
+        flex-wrap: wrap;
+      }
+
+      .action-btn {
+        appearance: none;
+        border: 1px solid rgba(132, 196, 239, 0.32);
+        border-radius: 14px;
+        background: rgba(14, 23, 30, 0.78);
+        color: var(--text);
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        font-weight: 700;
+        font-size: 0.72rem;
+        letter-spacing: 0.18rem;
+        text-transform: uppercase;
+        padding: 0.7rem 1rem;
+        cursor: pointer;
+        transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+      }
+
+      .action-btn:hover,
+      .action-btn:focus-visible {
+        transform: translateY(-1px);
+        box-shadow: 0 0 0 2px rgba(110, 226, 255, 0.14), 0 0 16px rgba(57, 215, 255, 0.16);
+        border-color: rgba(120, 230, 255, 0.7);
+        outline: none;
+      }
+
+
+      button:focus-visible,
+      canvas:focus-visible {
+        outline: 2px solid rgba(89, 227, 255, 0.9);
+        outline-offset: 2px;
+      }
+
+      @media (max-width: 720px) {
+        body { padding-inline: 12px; }
+        .page-shell { width: min(100%, 720px); }
+        .score-row {
+          grid-template-columns: minmax(0, 1fr) minmax(80px, 1fr) minmax(0, 1fr);
+          gap: 4px;
+          padding: 0 6px;
+        }
+        .score-side {
+          flex-direction: column;
+          justify-content: center;
+          gap: 4px;
+          min-width: 0;
+        }
+        .score-side.right { align-items: flex-end; }
+        .score-label {
+          font-size: 0.58rem;
+          letter-spacing: 0.1rem;
+        }
+        .score-box { min-width: 44px; height: 38px; font-size: 1.7rem; }
+        .center-badge {
+          gap: 2px;
+        }
+        .center-badge .vs { font-size: 0.95rem; }
+        .center-badge .tag {
+          font-size: 0.48rem;
+          letter-spacing: 0.06em;
+        }
+        .arena-board { margin: 0 8px; }
+        .controls-row { gap: 10px; }
+        .control-chip { min-width: 0; width: 100%; }
+      }
+
+      @media (max-width: 420px) {
+        .score-row {
+          gap: 6px;
+        }
+        .center-badge {
+          gap: 1px;
+        }
+        .center-badge .vs {
+          font-size: 0.8rem;
+          letter-spacing: 0.08em;
+        }
+        .center-badge .tag {
+          font-size: 0.5rem;
+          letter-spacing: 0.03em;
+          line-height: 1.2;
+        }
+        .subtitle { font-size: clamp(1.6rem, 8vw, 2rem); }
+        .subtitle .matchup-icon { width: 0.68em; height: 0.82em; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="masthead" aria-label="Pong Game header">
+        <h1>Pong Game</h1>
+        <div class="subtitle" aria-label="Matchup">
+          <span class="matchup-side"><span class="matchup-icon lightning-icon" aria-hidden="true">ϟ</span><span>Lightning</span></span>
+          <span class="vs">VS</span>
+          <span class="matchup-side"><span class="matchup-icon wind-icon" aria-hidden="true">≋</span><span>Wind</span></span>
+        </div>
+      </header>
+
+      <div class="arena-shell">
+        <div class="score-row" aria-label="Scoreboard">
+          <div class="score-side left">
+            <div class="score-label">Lightning</div>
+            <div class="score-box lightning" id="scoreLeft">0</div>
+          </div>
+
+          <div class="center-badge">
+            <span class="vs">VS</span>
+            <span class="tag" id="matchStatus" aria-live="polite">Lightning to serve</span>
+          </div>
+
+          <div class="score-side right">
+            <div class="score-box wind" id="scoreRight">0</div>
+            <div class="score-label">Wind</div>
+          </div>
+        </div>
+
+        <div class="arena-board" id="arena" aria-label="Pong arena" tabindex="0">
+          <canvas id="gameCanvas" width="1200" height="700"></canvas>
+          <div class="board-overlay" id="boardOverlay">
+            <div class="serve-text" id="serveText">Press Space to serve</div>
+          </div>
+        </div>
+
+        <div class="controls-row" aria-label="Paddle controls">
+          <div class="control-chip"><span>Lightning paddle <kbd>W</kbd> / <kbd>S</kbd></span></div>
+          <div class="control-chip"><span>Wind paddle <kbd>↑</kbd> / <kbd>↓</kbd></span></div>
+          <div class="control-chip"><span>Touch / drag either side of arena</span></div>
+        </div>
+
+        <div class="action-row" aria-label="Game actions">
+          <button class="action-btn" id="startBtn" type="button">Start</button>
+          <button class="action-btn" id="pauseBtn" type="button">Pause</button>
+          <button class="action-btn" id="restartBtn" type="button">Restart</button>
+        </div>
+      </div>
+
+
+    </div>
+
+    <script>
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const arena = document.getElementById('arena');
+      const scoreLeft = document.getElementById('scoreLeft');
+      const scoreRight = document.getElementById('scoreRight');
+      const matchStatus = document.getElementById('matchStatus');
+      const serveText = document.getElementById('serveText');
+      const boardOverlay = document.getElementById('boardOverlay');
+      const startBtn = document.getElementById('startBtn');
+      const pauseBtn = document.getElementById('pauseBtn');
+      const restartBtn = document.getElementById('restartBtn');
+
+      let width = 1200;
+      let height = 700;
+      let lastTime = 0;
+      let leftScore = 0;
+      let rightScore = 0;
+      let gameState = 'ready';
+      let winner = null;
+      let servingSide = 'left';
+      let recentScorer = null;
+      let effectTime = 0;
+
+      function updateMatchStatus(status) {
+        matchStatus.textContent = status;
+      }
+
+      const game = {
+        leftPaddle: { x: 42, y: 0, w: 14, h: 116, speed: 720, color: '#39d7ff', glow: 'rgba(57, 215, 255, 0.75)' },
+        rightPaddle: { x: 0, y: 0, w: 14, h: 116, speed: 720, color: '#eef5ff', glow: 'rgba(219, 233, 255, 0.8)' },
+        ball: { x: 0, y: 0, r: 10, vx: 0, vy: 0, speed: 420, mode: 'lightning' },
+        particles: [],
+        bursts: [],
+        trail: [],
+        hitFlash: 0,
+        hitSide: null,
+        lastImpact: null,
+        flash: 0,
+        leftTouching: false,
+        rightTouching: false,
+      };
+
+      const keys = { w: false, s: false, up: false, down: false };
+
+      function resizeCanvas() {
+        const rect = arena.getBoundingClientRect();
+        const ratio = window.devicePixelRatio || 1;
+        width = Math.max(320, rect.width);
+        height = rect.height;
+        canvas.width = width * ratio;
+        canvas.height = height * ratio;
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+        game.leftPaddle.x = 38;
+        game.rightPaddle.x = width - 38 - game.rightPaddle.w;
+        const centerY = height / 2 - game.leftPaddle.h / 2;
+        game.leftPaddle.y = centerY;
+        game.rightPaddle.y = centerY;
+        if (gameState !== 'playing') {
+          resetBall(servingSide === 'left' ? 1 : -1, true);
+        }
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+      }
+
+      function updateScoreLabels() {
+        scoreLeft.textContent = leftScore;
+        scoreRight.textContent = rightScore;
+      }
+
+      function resetBall(direction = 1, keepServeText = false) {
+        game.ball.x = width / 2;
+        game.ball.y = height / 2;
+        const pulse = direction === 1 ? 1 : -1;
+        game.ball.vx = 540 * pulse;
+        game.ball.vy = (Math.random() * 220 - 110);
+        game.ball.speed = 540;
+        game.ball.mode = servingSide === 'left' ? 'lightning' : 'wind';
+        game.trail.length = 0;
+        game.bursts.length = 0;
+        game.hitFlash = 0;
+        if (keepServeText) {
+          serveText.textContent = `Serve: ${servingSide === 'left' ? 'Lightning' : 'Wind'}`;
+          boardOverlay.classList.remove('hidden');
+        } else {
+          boardOverlay.classList.add('hidden');
+        }
+      }
+
+      function setServeState(text) {
+        serveText.textContent = text;
+        boardOverlay.classList.remove('hidden');
+      }
+
+      function startGame() {
+        if (gameState === 'gameover') {
+          leftScore = 0;
+          rightScore = 0;
+          updateScoreLabels();
+          winner = null;
+          servingSide = 'left';
+          resetBall(1, true);
+          gameState = 'ready';
+          updateMatchStatus('Match reset · Lightning serves');
+        }
+        if (gameState === 'ready' || gameState === 'paused') {
+          gameState = 'playing';
+          updateMatchStatus('Rally in progress');
+          boardOverlay.classList.add('hidden');
+        }
+      }
+
+      function pauseGame() {
+        if (gameState === 'playing') {
+          gameState = 'paused';
+          updateMatchStatus('Paused');
+          setServeState('Paused');
+        }
+      }
+
+      function restartGame() {
+        leftScore = 0;
+        rightScore = 0;
+        updateScoreLabels();
+        winner = null;
+        recentScorer = null;
+        servingSide = 'left';
+        gameState = 'ready';
+        resetBall(1, true);
+        updateMatchStatus('Match reset · Lightning serves');
+      }
+
+      function scorePoint(side) {
+        if (side === 'left') {
+          leftScore += 1;
+        } else {
+          rightScore += 1;
+        }
+        updateScoreLabels();
+        recentScorer = side === 'left' ? 'Lightning' : 'Wind';
+
+        if (leftScore >= 7 || rightScore >= 7) {
+          winner = leftScore > rightScore ? 'Lightning' : 'Wind';
+          gameState = 'gameover';
+          updateMatchStatus(`${winner} wins`);
+          setServeText(`Winner: ${winner}`);
+          return;
+        }
+
+        servingSide = side === 'left' ? 'right' : 'left';
+        gameState = 'ready';
+        resetBall(side === 'left' ? -1 : 1, true);
+        updateMatchStatus(`${recentScorer} scores · ${servingSide === 'left' ? 'Lightning' : 'Wind'} serves`);
+      }
+
+      function setServeText(text) {
+        serveText.textContent = text;
+        boardOverlay.classList.remove('hidden');
+      }
+
+      function updatePaddles(dt) {
+        const left = game.leftPaddle;
+        const right = game.rightPaddle;
+
+        if (keys.w) left.y -= left.speed * dt;
+        if (keys.s) left.y += left.speed * dt;
+        if (keys.up) right.y -= right.speed * dt;
+        if (keys.down) right.y += right.speed * dt;
+
+        if (game.leftTouching) {
+          const targetY = clamp(game.touchLeftY - left.h / 2, 18, height - left.h - 18);
+          left.y += (targetY - left.y) * Math.min(1, dt * 16);
+        }
+        if (game.rightTouching) {
+          const targetY = clamp(game.touchRightY - right.h / 2, 18, height - right.h - 18);
+          right.y += (targetY - right.y) * Math.min(1, dt * 16);
+        }
+
+        left.y = clamp(left.y, 18, height - left.h - 18);
+        right.y = clamp(right.y, 18, height - right.h - 18);
+      }
+
+      function emitPulse(paddle, mode, dt) {
+        game.particles.push({
+          x: paddle.x + paddle.w / 2,
+          y: paddle.y + paddle.h / 2 + (Math.random() - 0.5) * 28,
+          vx: (Math.random() - 0.5) * 32,
+          vy: (Math.random() - 0.5) * 18,
+          size: 1.5 + Math.random() * 2.2,
+          life: 0.7 + Math.random() * 0.7,
+          maxLife: 1.2,
+          mode,
+          color: mode === 'lightning' ? 'rgba(57, 215, 255, 0.9)' : 'rgba(234, 242, 255, 0.8)'
+        });
+        if (game.particles.length > 150) game.particles.splice(0, game.particles.length - 150);
+      }
+
+      function spawnBurst(x, y, radius, mode, force = 1) {
+        const count = mode === 'lightning' ? 24 : 20;
+        for (let i = 0; i < count; i += 1) {
+          const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.36;
+          const speed = (Math.random() * 110 + (mode === 'lightning' ? 135 : 95)) * force;
+          game.particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            size: 1.4 + Math.random() * (mode === 'lightning' ? 2.8 : 2.2),
+            life: 0.24 + Math.random() * 0.3,
+            maxLife: 0.54,
+            mode,
+            spin: Math.random() * Math.PI * 2,
+            color: mode === 'lightning' ? 'rgba(57, 215, 255, 0.9)' : 'rgba(228, 241, 255, 0.8)'
+          });
+        }
+        if (game.particles.length > 150) game.particles.splice(0, game.particles.length - 150);
+        game.bursts.push({ x, y, radius, mode, life: mode === 'lightning' ? 0.34 : 0.48, maxLife: mode === 'lightning' ? 0.34 : 0.48, angle: Math.random() * Math.PI * 2 });
+        if (game.bursts.length > 6) game.bursts.shift();
+      }
+
+      function updateParticles(dt) {
+        for (let i = game.particles.length - 1; i >= 0; i -= 1) {
+          const p = game.particles[i];
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vx *= Math.max(0, 1 - dt * (p.mode === 'wind' ? 1.4 : 0.45));
+          p.vy *= Math.max(0, 1 - dt * (p.mode === 'wind' ? 1.4 : 0.45));
+          p.spin += dt * 8;
+          p.life -= dt;
+          if (p.life <= 0) {
+            game.particles.splice(i, 1);
+          }
+        }
+        for (let i = game.bursts.length - 1; i >= 0; i -= 1) {
+          game.bursts[i].life -= dt;
+          if (game.bursts[i].life <= 0) game.bursts.splice(i, 1);
+        }
+        for (let i = game.trail.length - 1; i >= 0; i -= 1) {
+          game.trail[i].life -= dt;
+          if (game.trail[i].life <= 0) game.trail.splice(i, 1);
+        }
+      }
+
+      function updateBall(dt) {
+        const ball = game.ball;
+        if (gameState !== 'playing') {
+          ball.x = width / 2;
+          ball.y = height / 2;
+          return;
+        }
+
+        ball.x += ball.vx * dt;
+        ball.y += ball.vy * dt;
+        game.trail.push({ x: ball.x, y: ball.y, mode: ball.mode, life: 0.34, maxLife: 0.34 });
+        if (game.trail.length > 18) game.trail.shift();
+
+        if (ball.y - ball.r <= 18 || ball.y + ball.r >= height - 18) {
+          ball.y = clamp(ball.y, ball.r + 18, height - ball.r - 18);
+          ball.vy *= -1;
+          spawnBurst(ball.x, ball.y, 18, ball.mode, 0.5);
+        }
+
+        if (ball.x - ball.r <= game.leftPaddle.x + game.leftPaddle.w && ball.x + ball.r >= game.leftPaddle.x) {
+          if (ball.y >= game.leftPaddle.y && ball.y <= game.leftPaddle.y + game.leftPaddle.h && ball.vx < 0) {
+            reflectFromPaddle(game.leftPaddle, 'left');
+          }
+        }
+
+        if (ball.x + ball.r >= game.rightPaddle.x && ball.x - ball.r <= game.rightPaddle.x + game.rightPaddle.w) {
+          if (ball.y >= game.rightPaddle.y && ball.y <= game.rightPaddle.y + game.rightPaddle.h && ball.vx > 0) {
+            reflectFromPaddle(game.rightPaddle, 'right');
+          }
+        }
+
+        if (ball.x < -30) {
+          scorePoint('right');
+        }
+
+        if (ball.x > width + 30) {
+          scorePoint('left');
+        }
+      }
+
+      function reflectFromPaddle(paddle, side) {
+        const center = paddle.y + paddle.h / 2;
+        const offset = (game.ball.y - center) / (paddle.h / 2);
+        const angle = offset * 1.05;
+        const dir = side === 'left' ? 1 : -1;
+        const speed = Math.min(game.ball.speed + 36, 950);
+        game.ball.speed = speed;
+        game.ball.vx = Math.cos(angle) * speed * dir;
+        game.ball.vy = Math.sin(angle) * speed;
+
+        const mode = side === 'left' ? 'lightning' : 'wind';
+        game.ball.mode = mode;
+        game.hitFlash = 0.34;
+        game.hitSide = side;
+        game.lastImpact = { side, mode, at: performance.now() };
+        spawnBurst(game.ball.x, game.ball.y, mode === 'lightning' ? 34 : 30, mode, 1.35);
+        emitPulse(paddle, mode, 1);
+      }
+
+      function drawBackground() {
+        const gradient = ctx.createLinearGradient(0, 0, width, height);
+        gradient.addColorStop(0, '#081821');
+        gradient.addColorStop(0.38, '#1b3044');
+        gradient.addColorStop(0.7, '#0f1d2a');
+        gradient.addColorStop(1, '#111827');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        const leftGlow = ctx.createRadialGradient(width * 0.25, height * 0.6, 30, width * 0.25, height * 0.6, width * 0.45);
+        leftGlow.addColorStop(0, 'rgba(50, 219, 255, 0.26)');
+        leftGlow.addColorStop(0.4, 'rgba(33, 142, 182, 0.18)');
+        leftGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = leftGlow;
+        ctx.fillRect(0, 0, width, height);
+
+        const rightGlow = ctx.createRadialGradient(width * 0.82, height * 0.44, 10, width * 0.82, height * 0.44, width * 0.35);
+        rightGlow.addColorStop(0, 'rgba(215, 223, 255, 0.14)');
+        rightGlow.addColorStop(0.35, 'rgba(130, 140, 200, 0.1)');
+        rightGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = rightGlow;
+        ctx.fillRect(0, 0, width, height);
+
+        const starCount = 90;
+        for (let i = 0; i < starCount; i += 1) {
+          const x = ((i * 131.1) % width);
+          const y = (i * 71.7) % height;
+          const alpha = 0.2 + ((i * 7) % 10) / 18 + Math.sin(effectTime * (1.2 + i % 3) + i) * 0.08;
+          const radius = i % 4 === 0 ? 1.7 : 1;
+          ctx.fillStyle = `rgba(197, 235, 255, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.strokeStyle = 'rgba(233, 239, 255, 0.65)';
+        ctx.setLineDash([16, 16]);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(width / 2, 18);
+        ctx.lineTo(width / 2, height - 18);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      function drawPaddle(paddle, mode) {
+        const x = paddle.x;
+        const y = paddle.y;
+        const isHit = game.hitFlash > 0 && game.hitSide === (mode === 'lightning' ? 'left' : 'right');
+        const impact = isHit ? game.hitFlash / 0.34 : 0;
+        ctx.save();
+        ctx.shadowBlur = 18 + impact * 28;
+        ctx.shadowColor = mode === 'lightning' ? 'rgba(57, 215, 255, 0.8)' : 'rgba(226, 237, 255, 0.8)';
+        ctx.fillStyle = isHit ? `rgba(255, 255, 255, ${0.65 + impact * 0.35})` : (mode === 'lightning' ? '#65d8ff' : '#f3f8ff');
+        ctx.beginPath();
+        ctx.roundRect(x, y, paddle.w, paddle.h, paddle.w / 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = mode === 'lightning' ? 'rgba(57, 215, 255, 0.52)' : 'rgba(225, 236, 255, 0.5)';
+        ctx.beginPath();
+        ctx.roundRect(x + 3, y + 4, paddle.w - 6, paddle.h - 8, (paddle.w - 6) / 2);
+        ctx.fill();
+        if (impact > 0) {
+          const flareX = mode === 'lightning' ? x + paddle.w + 2 : x - 2;
+          const flare = ctx.createRadialGradient(flareX, game.ball.y, 1, flareX, game.ball.y, 60 * (1 - impact * 0.25));
+          flare.addColorStop(0, mode === 'lightning' ? `rgba(101, 241, 255, ${impact * 0.8})` : `rgba(242, 248, 255, ${impact * 0.8})`);
+          flare.addColorStop(1, 'rgba(200, 230, 255, 0)');
+          ctx.fillStyle = flare;
+          ctx.fillRect(flareX - 64, game.ball.y - 64, 128, 128);
+        }
+        ctx.restore();
+      }
+
+      function drawBallTrail() {
+        const ball = game.ball;
+        if (game.trail.length > 1) {
+          for (let i = 1; i < game.trail.length; i += 1) {
+            const point = game.trail[i];
+            const previous = game.trail[i - 1];
+            if (point.mode !== previous.mode) continue;
+            const fade = Math.min(point.life / point.maxLife, i / game.trail.length);
+            const lightning = point.mode === 'lightning';
+            ctx.save();
+            ctx.globalAlpha = (lightning ? 0.62 : 0.45) * fade;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = lightning ? '#5deaff' : '#eaf4ff';
+            ctx.shadowColor = lightning ? '#20cfff' : '#bdcffd';
+            ctx.shadowBlur = lightning ? 18 : 13;
+            ctx.lineWidth = 3.5 + fade * 5;
+            ctx.beginPath();
+            ctx.moveTo(previous.x, previous.y);
+            if (lightning) {
+              const dx = point.x - previous.x;
+              const dy = point.y - previous.y;
+              ctx.lineTo(previous.x + dx * 0.42 + Math.sin(effectTime * 32 + i) * 7, previous.y + dy * 0.42 - Math.cos(effectTime * 28 + i) * 6);
+              ctx.lineTo(previous.x + dx * 0.72 - Math.sin(effectTime * 23 + i) * 5, previous.y + dy * 0.72 + Math.cos(effectTime * 34 + i) * 5);
+            } else {
+              const dx = point.x - previous.x;
+              const dy = point.y - previous.y;
+              ctx.quadraticCurveTo((previous.x + point.x) / 2 - dy * 0.16, (previous.y + point.y) / 2 + dx * 0.16, point.x, point.y);
+            }
+            ctx.lineTo(point.x, point.y);
+            ctx.stroke();
+            ctx.restore();
+          }
+        } else if (gameState === 'playing') {
+          const tailX = ball.x - ball.vx * 0.055;
+          const tailY = ball.y - ball.vy * 0.055;
+          const lightning = ball.mode === 'lightning';
+          ctx.save();
+          ctx.globalAlpha = 0.68;
+          ctx.lineCap = 'round';
+          ctx.strokeStyle = lightning ? '#52e5ff' : '#e8f1ff';
+          ctx.shadowColor = lightning ? '#24cfff' : '#cbd9ff';
+          ctx.shadowBlur = 18;
+          ctx.lineWidth = 7;
+          ctx.beginPath();
+          ctx.moveTo(tailX, tailY);
+          ctx.quadraticCurveTo((tailX + ball.x) / 2, (tailY + ball.y) / 2 + Math.sin(effectTime * 12) * 9, ball.x, ball.y);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      function drawLightningEffect(ball) {
+        const phase = effectTime;
+        const orbitRadius = ball.r + 9;
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.shadowColor = 'rgba(57, 215, 255, 0.85)';
+        ctx.shadowBlur = 10;
+
+        for (let arc = 0; arc < 3; arc += 1) {
+          const start = phase * (arc % 2 ? -1.4 : 1.1) + arc * 2.08;
+          const span = 1.25 + 0.38 * Math.sin(phase * 3.1 + arc);
+          const steps = 9;
+          ctx.beginPath();
+          for (let step = 0; step <= steps; step += 1) {
+            const progress = step / steps;
+            const angle = start + span * progress;
+            const jag = step === 0 || step === steps ? 0 : Math.sin(step * 8.4 + phase * 12 + arc) * 3.2;
+            const radius = orbitRadius + jag;
+            const x = ball.x + Math.cos(angle) * radius;
+            const y = ball.y + Math.sin(angle) * radius;
+            if (step === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.strokeStyle = `rgba(116, 239, 255, ${0.68 + 0.25 * Math.sin(phase * 8 + arc)})`;
+          ctx.lineWidth = arc === 0 ? 1.7 : 1.15;
+          ctx.stroke();
+        }
+
+        for (let spark = 0; spark < 4; spark += 1) {
+          const angle = phase * (1.8 + spark * 0.16) + spark * 1.57;
+          const radius = orbitRadius + 4 + 2 * Math.sin(phase * 5 + spark);
+          const x = ball.x + Math.cos(angle) * radius;
+          const y = ball.y + Math.sin(angle) * radius;
+          const size = spark % 2 === 0 ? 2 : 1.4;
+          ctx.fillStyle = 'rgba(213, 255, 255, 0.95)';
+          ctx.fillRect(x - size / 2, y - size / 2, size, size);
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + Math.cos(angle) * 4, y + Math.sin(angle) * 4);
+          ctx.strokeStyle = 'rgba(77, 225, 255, 0.72)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawWindEffect(ball) {
+        const phase = effectTime;
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.shadowColor = 'rgba(218, 235, 255, 0.7)';
+        ctx.shadowBlur = 8;
+
+        for (let ribbon = 0; ribbon < 3; ribbon += 1) {
+          const angle = phase * (ribbon % 2 ? -0.72 : 0.58) + ribbon * 2.1;
+          const radius = ball.r + 8 + ribbon * 2.2;
+          const startX = ball.x + Math.cos(angle) * radius;
+          const startY = ball.y + Math.sin(angle) * radius;
+          const sweep = 1.65 + 0.25 * Math.sin(phase * 1.7 + ribbon);
+          const endX = ball.x + Math.cos(angle + sweep) * radius;
+          const endY = ball.y + Math.sin(angle + sweep) * radius;
+          const curl = angle + sweep * 0.62;
+          const curlRadius = radius + 3 + 1.5 * Math.sin(phase * 2 + ribbon);
+          ctx.beginPath();
+          ctx.moveTo(startX, startY);
+          ctx.quadraticCurveTo(
+            ball.x + Math.cos(curl) * curlRadius,
+            ball.y + Math.sin(curl) * curlRadius,
+            endX,
+            endY
+          );
+          ctx.strokeStyle = `rgba(228, 240, 255, ${0.56 + 0.22 * Math.sin(phase * 2.4 + ribbon)})`;
+          ctx.lineWidth = ribbon === 0 ? 1.7 : 1.2;
+          ctx.stroke();
+
+          const moteAngle = angle + sweep * (0.25 + 0.55 * ((phase * 0.32 + ribbon * 0.37) % 1));
+          const moteRadius = radius + 2.5;
+          ctx.beginPath();
+          ctx.arc(
+            ball.x + Math.cos(moteAngle) * moteRadius,
+            ball.y + Math.sin(moteAngle) * moteRadius,
+            1.25,
+            0,
+            Math.PI * 2
+          );
+          ctx.fillStyle = 'rgba(246, 250, 255, 0.9)';
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      function drawServingEffect() {
+        const ball = game.ball;
+        if (ball.mode === 'lightning') drawLightningEffect(ball);
+        else drawWindEffect(ball);
+      }
+
+      function drawBall() {
+        const ball = game.ball;
+        const glow = ball.mode === 'lightning' ? 'rgba(57, 215, 255, 0.85)' : 'rgba(219, 230, 255, 0.85)';
+        ctx.save();
+        drawBallTrail();
+        ctx.shadowBlur = 22;
+        ctx.shadowColor = glow;
+        const grad = ctx.createRadialGradient(ball.x - 3, ball.y - 4, 2, ball.x, ball.y, ball.r + 8);
+        grad.addColorStop(0, ball.mode === 'lightning' ? '#daffff' : '#fff');
+        grad.addColorStop(0.25, ball.mode === 'lightning' ? '#65d8ff' : '#edf5ff');
+        grad.addColorStop(1, ball.mode === 'lightning' ? '#1fb9ff' : '#dfe8ff');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      }
+
+      function drawParticles() {
+        for (const p of game.particles) {
+          const alpha = clamp(p.life / p.maxLife, 0, 1);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          if (p.mode === 'lightning') {
+            ctx.strokeStyle = '#7df3ff';
+            ctx.lineWidth = p.size;
+            ctx.shadowColor = '#2bdcff';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x - p.vx * 0.035, p.y - p.vy * 0.035);
+            ctx.stroke();
+          } else {
+            ctx.fillStyle = '#eff7ff';
+            ctx.shadowColor = '#dbe9ff';
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * 0.65, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
+
+      function drawImpactBursts() {
+        for (const burst of game.bursts) {
+          const progress = 1 - burst.life / burst.maxLife;
+          const alpha = Math.max(0, 1 - progress);
+          const radius = burst.radius * (0.35 + progress * 1.9);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.lineWidth = burst.mode === 'lightning' ? 2.5 : 1.8;
+          ctx.strokeStyle = burst.mode === 'lightning' ? '#56eaff' : '#edf5ff';
+          ctx.shadowColor = burst.mode === 'lightning' ? '#22ceff' : '#d5e5ff';
+          ctx.shadowBlur = burst.mode === 'lightning' ? 20 : 14;
+          if (burst.mode === 'lightning') {
+            ctx.beginPath();
+            ctx.arc(burst.x, burst.y, radius, 0, Math.PI * 2);
+            ctx.stroke();
+            for (let bolt = 0; bolt < 5; bolt += 1) {
+              const angle = burst.angle + bolt * Math.PI * 0.4;
+              const endRadius = radius * (1.18 + (bolt % 2) * 0.2);
+              const midRadius = radius * 0.66;
+              ctx.beginPath();
+              ctx.moveTo(burst.x + Math.cos(angle) * radius * 0.3, burst.y + Math.sin(angle) * radius * 0.3);
+              ctx.lineTo(burst.x + Math.cos(angle + 0.12) * midRadius, burst.y + Math.sin(angle + 0.12) * midRadius);
+              ctx.lineTo(burst.x + Math.cos(angle - 0.1) * endRadius, burst.y + Math.sin(angle - 0.1) * endRadius);
+              ctx.stroke();
+            }
+          } else {
+            for (let curl = 0; curl < 3; curl += 1) {
+              const start = burst.angle + curl * 2.1 + progress * 1.2;
+              ctx.beginPath();
+              ctx.arc(burst.x, burst.y, radius * (0.72 + curl * 0.18), start, start + 1.9);
+              ctx.stroke();
+            }
+            ctx.beginPath();
+            ctx.arc(burst.x, burst.y, radius * 0.48, burst.angle + 1, burst.angle + 4.8);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        if (game.hitFlash > 0) {
+          const sideX = game.hitSide === 'left' ? 0 : width;
+          const x = game.hitSide === 'left' ? game.leftPaddle.x + game.leftPaddle.w : game.rightPaddle.x;
+          const glow = ctx.createRadialGradient(x, game.ball.y, 0, x, game.ball.y, width * 0.26);
+          const opacity = game.hitFlash / 0.34;
+          glow.addColorStop(0, game.ball.mode === 'lightning' ? `rgba(42, 218, 255, ${opacity * 0.2})` : `rgba(229, 240, 255, ${opacity * 0.2})`);
+          glow.addColorStop(1, 'rgba(7, 13, 24, 0)');
+          ctx.fillStyle = glow;
+          ctx.fillRect(sideX === 0 ? 0 : x - width * 0.28, 0, width * 0.28, height);
+        }
+      }
+
+      function render() {
+        drawBackground();
+        drawImpactBursts();
+        drawParticles();
+        drawPaddle(game.leftPaddle, 'lightning');
+        drawPaddle(game.rightPaddle, 'wind');
+        drawServingEffect();
+        drawBall();
+      }
+
+      function animationLoop(timestamp) {
+        const dt = Math.min((timestamp - lastTime) / 1000 || 0.016, 0.025);
+        lastTime = timestamp;
+        effectTime += dt;
+
+        if (gameState === 'playing') {
+          updatePaddles(dt);
+          updateBall(dt);
+          updateParticles(dt);
+        } else {
+          updatePaddles(dt * 0.5);
+          updateParticles(dt * 0.6);
+        }
+
+        if (game.flash > 0) {
+          game.flash = Math.max(0, game.flash - dt * 1.5);
+        }
+        if (game.hitFlash > 0) game.hitFlash = Math.max(0, game.hitFlash - dt);
+
+        render();
+        requestAnimationFrame(animationLoop);
+      }
+
+      function isTypingTarget(target) {
+        return target instanceof Element && Boolean(target.closest(
+          'input, textarea, select, [contenteditable="true"]'
+        ));
+      }
+
+      function isNativeSpaceTarget(target) {
+        return target instanceof Element && Boolean(target.closest('button'));
+      }
+
+      function handleKeyChange(event, isPressed) {
+        const { key } = event;
+        const canControlGame = !isTypingTarget(event.target);
+        const preserveNativeSpace = key === ' ' && isNativeSpaceTarget(event.target);
+
+        if (!isPressed) {
+          if (key === 'w' || key === 'W') keys.w = false;
+          if (key === 's' || key === 'S') keys.s = false;
+          if (key === 'ArrowUp') keys.up = false;
+          if (key === 'ArrowDown') keys.down = false;
+        }
+
+        if (canControlGame && gameState === 'playing') {
+          if (key === ' ' && !preserveNativeSpace) event.preventDefault();
+          if (key === 'ArrowUp' || key === 'ArrowDown') {
+            event.preventDefault();
+          }
+          if (isPressed && (key === 'w' || key === 'W')) keys.w = true;
+          if (isPressed && (key === 's' || key === 'S')) keys.s = true;
+          if (isPressed && key === 'ArrowUp') keys.up = true;
+          if (isPressed && key === 'ArrowDown') keys.down = true;
+        }
+
+        if (
+          canControlGame &&
+          !preserveNativeSpace &&
+          isPressed &&
+          key === ' ' &&
+          (gameState === 'ready' || gameState === 'paused')
+        ) {
+          event.preventDefault();
+          startGame();
+        }
+      }
+
+      window.addEventListener('keydown', (event) => {
+        handleKeyChange(event, true);
+      });
+
+      window.addEventListener('keyup', (event) => {
+        handleKeyChange(event, false);
+      });
+
+      arena.addEventListener('pointerdown', (event) => {
+        const rect = arena.getBoundingClientRect();
+        const y = event.clientY - rect.top;
+        const x = event.clientX - rect.left;
+        if (x < rect.width / 2) {
+          game.leftTouching = true;
+          game.touchLeftY = y;
+        } else {
+          game.rightTouching = true;
+          game.touchRightY = y;
+        }
+        if (gameState === 'ready') {
+          startGame();
+        }
+      });
+
+      arena.addEventListener('pointermove', (event) => {
+        const rect = arena.getBoundingClientRect();
+        const y = event.clientY - rect.top;
+        if (game.leftTouching) game.touchLeftY = y;
+        if (game.rightTouching) game.touchRightY = y;
+      });
+
+      arena.addEventListener('pointerup', () => {
+        game.leftTouching = false;
+        game.rightTouching = false;
+      });
+      arena.addEventListener('pointercancel', () => {
+        game.leftTouching = false;
+        game.rightTouching = false;
+      });
+      arena.addEventListener('pointerleave', () => {
+        game.leftTouching = false;
+        game.rightTouching = false;
+      });
+
+      startBtn.addEventListener('click', () => {
+        startGame();
+      });
+
+      pauseBtn.addEventListener('click', () => {
+        pauseGame();
+      });
+
+      restartBtn.addEventListener('click', () => {
+        restartGame();
+      });
+
+      updateScoreLabels();
+      resizeCanvas();
+      resetBall(1, true);
+      requestAnimationFrame(animationLoop);
+      window.addEventListener('resize', resizeCanvas);
+    </script>
+  </body>
+</html>
